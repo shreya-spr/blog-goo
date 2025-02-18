@@ -1,4 +1,13 @@
-## Methods in Go
++++
+title = "How to make maggi"
+description =  "Learn how to make maggi super quick!"
+date = 2025-02-18
+go_version = "1.23.6"
+
+[author]
+name = "Shreya P Rao"
+email = "shreya@example.com"
++++
 
 ```go
 type Vertex struct {

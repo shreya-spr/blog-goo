@@ -3,12 +3,14 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"html/template"
 	"io"
 	"log"
 	"net/http"
 	"os"
-	"text/template"
+	"strings"
 
+	"github.com/adrg/frontmatter"
 	"github.com/yuin/goldmark"
 
 	highlighting "github.com/yuin/goldmark-highlighting/v2"
@@ -59,14 +61,14 @@ func (fr FileReader) Read(slug string) (string, error) {
 
 // Blog needs Title, Author, Content
 type Author struct {
-	Name  string
-	Email string
+	Name  string `toml:"name"`
+	Email string `toml:"email"`
 }
 
 type PostData struct {
-	Title   string
-	Author  Author
-	Content string
+	Title   string `toml:"title"`
+	Author  Author `toml:"author"`
+	Content template.HTML
 }
 
 // Make HTTP request with POST
@@ -80,6 +82,21 @@ func PostHandler(sr SlugReader, tpl *template.Template) http.HandlerFunc {
 			return
 		}
 
+		fmt.Println("Pre parse Post markdown:", postMarkdown)
+		// FrontMatter
+		var post PostData 
+		remainingMd, err := frontmatter.Parse(strings.NewReader(postMarkdown), &post)
+		fmt.Println("Remaining Markdown:", remainingMd)
+		fmt.Println("Post markdown: ", postMarkdown)
+		
+
+		if err != nil {
+			fmt.Println("Frontmatter Parsing Error:", err)
+			http.Error(w, "Error parsing frontmatter", http.StatusInternalServerError)
+			return
+		}
+
+
 		// To render the code snippets also in Markdown using goldmark package from github
 		mdRenderer := goldmark.New(
 			goldmark.WithExtensions(
@@ -89,7 +106,7 @@ func PostHandler(sr SlugReader, tpl *template.Template) http.HandlerFunc {
 			),
 		)
 		var buf bytes.Buffer
-		err = mdRenderer.Convert([]byte(postMarkdown), &buf)
+		err = mdRenderer.Convert([]byte(remainingMd), &buf)
 		if err != nil {
 			http.Error(w, "Failed to render markdown", http.StatusInternalServerError)
 			return
@@ -98,14 +115,8 @@ func PostHandler(sr SlugReader, tpl *template.Template) http.HandlerFunc {
 		// Set to HTML
 		w.Header().Set("Content-Type", "text/html")
 
-		err = tpl.Execute(w, PostData{
-			Title: "My Blog-goo",
-			Author: Author{
-				Name:  "Shreya P Rao",
-				Email: "shreya@example.com",
-			},
-			Content: buf.String(),
-		})
+		post.Content = template.HTML(buf.String())
+		err = tpl.Execute(w, post)
 
 		if (err != nil) {
 			http.Error(w, "Error executing the template", http.StatusInternalServerError)

@@ -1,4 +1,12 @@
-## How to make maggi
++++
+title = "How to make maggi"
+description =  "Learn how to make maggi super quick!"
+date = 2025-02-18
+
+[author]
+name = "Shreya P Rao"
+email = "shreya@example.com"
++++
 
 Ingredients: Maggi noodles, Magic masala packets, water, oil \
 
