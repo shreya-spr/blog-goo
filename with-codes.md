@@ -1,6 +1,6 @@
 +++
-title = "How to make maggi"
-description =  "Learn how to make maggi super quick!"
+title = "Methods in Go"
+description =  "Understand how methods work in Go real quick!"
 date = 2025-02-18
 go_version = "1.23.6"
 
