@@ -1,13 +1,17 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
-)
 
+	"github.com/yuin/goldmark"
+
+	highlighting "github.com/yuin/goldmark-highlighting/v2"
+)
 func main() {
 	mux := http.NewServeMux()
 
@@ -59,7 +63,26 @@ func PostHandler(sr SlugReader) http.HandlerFunc {
 			http.Error(w, "Post not found", http.StatusNotFound)
 			return
 		}
-		fmt.Fprintf(w, "%s", postMarkdown)
+
+		// To render the code snippets also in Markdown using goldmark package from github
+		mdRenderer := goldmark.New(
+			goldmark.WithExtensions(
+				highlighting.NewHighlighting(
+					highlighting.WithStyle("dracula"),
+				),
+			),
+		)
+		var buf bytes.Buffer
+		err = mdRenderer.Convert([]byte(postMarkdown), &buf)
+		if err != nil {
+			http.Error(w, "Failed to render markdown", http.StatusInternalServerError)
+			return
+		}
+
+		// Set to HTML
+		w.Header().Set("Content-Type", "text/html")
+		// Copy to the response(w)
+		io.Copy(w, &buf)
 	}
 }
 
