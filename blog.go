@@ -16,7 +16,10 @@ import (
 func main() {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /posts/{slug}", PostHandler(FileReader{}))
+	// HTML template with TailwindCSS styles
+	tpl := template.Must(template.ParseFiles("post.gohtml"))
+
+	mux.HandleFunc("GET /posts/{slug}", PostHandler(FileReader{}, tpl))
 
 	err := http.ListenAndServe(":3030", mux) // Run server and listen on port 3030
 
@@ -67,7 +70,7 @@ type PostData struct {
 }
 
 // Make HTTP request with POST
-func PostHandler(sr SlugReader) http.HandlerFunc {
+func PostHandler(sr SlugReader, tpl *template.Template) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		slug := r.PathValue("slug")
 		postMarkdown, err := sr.Read(slug)
@@ -94,13 +97,6 @@ func PostHandler(sr SlugReader) http.HandlerFunc {
 
 		// Set to HTML
 		w.Header().Set("Content-Type", "text/html")
-
-		// Might make the site slow because it gets rendered every time the file changes. Push it before the return statement above
-		tpl, err := template.ParseFiles("post.gohtml")
-		if (err != nil) {
-			http.Error(w, "Error parsing template", http.StatusInternalServerError)
-			return
-		}
 
 		err = tpl.Execute(w, PostData{
 			Title: "My Blog-goo",
