@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"text/template"
 
 	"github.com/yuin/goldmark"
 
@@ -53,6 +54,18 @@ func (fr FileReader) Read(slug string) (string, error) {
 	return string(b), nil // Typecasting the bytes to string and returning
 }
 
+// Blog needs Title, Author, Content
+type Author struct {
+	Name  string
+	Email string
+}
+
+type PostData struct {
+	Title   string
+	Author  Author
+	Content string
+}
+
 // Make HTTP request with POST
 func PostHandler(sr SlugReader) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -81,8 +94,27 @@ func PostHandler(sr SlugReader) http.HandlerFunc {
 
 		// Set to HTML
 		w.Header().Set("Content-Type", "text/html")
-		// Copy to the response(w)
-		io.Copy(w, &buf)
+
+		// Might make the site slow because it gets rendered every time the file changes. Push it before the return statement above
+		tpl, err := template.ParseFiles("post.gohtml")
+		if (err != nil) {
+			http.Error(w, "Error parsing template", http.StatusInternalServerError)
+			return
+		}
+
+		err = tpl.Execute(w, PostData{
+			Title: "My Blog-goo",
+			Author: Author{
+				Name:  "Shreya P Rao",
+				Email: "shreya@example.com",
+			},
+			Content: buf.String(),
+		})
+
+		if (err != nil) {
+			http.Error(w, "Error executing the template", http.StatusInternalServerError)
+			return
+		}
 	}
 }
 
